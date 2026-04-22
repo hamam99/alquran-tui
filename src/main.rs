@@ -21,6 +21,7 @@ use ratatui::style::{Color, Modifier, Style, Stylize};
 use ratatui::text::{Line, Span};
 use ratatui::widgets::{Block, List, ListState, Paragraph};
 use serde::Deserialize;
+use tokio::runtime::Runtime;
 use tui_input::Input;
 use tui_input::backend::crossterm::EventHandler;
 
@@ -78,7 +79,7 @@ pub struct AyahsList {
 fn main() -> color_eyre::Result<()> {
     color_eyre::install()?;
 
-    let rt = tokio::runtime::Runtime::new()?;
+    let rt: Runtime = tokio::runtime::Runtime::new()?;
 
     let mut list_state = ListState::default().with_selected(Some(0));
     let mut input: Input = Input::new("".to_string());
@@ -104,19 +105,7 @@ fn main() -> color_eyre::Result<()> {
                     KeyCode::Down => list_state.select_next(),
                     KeyCode::Up => list_state.select_previous(),
                     KeyCode::Enter => {
-                        let input_lowercase = input.value().to_lowercase().to_string();
-                        let items_filtered: Vec<&SurahDetail> = list_surah
-                            .iter()
-                            .filter(|x| x.english_name.to_lowercase().contains(&input_lowercase))
-                            .map(|s| s)
-                            .collect();
-
-                        let selected_item =
-                            list_state.selected().and_then(|i| items_filtered.get(i));
-
-                        if let Some(selected_item) = selected_item {
-                            rt.block_on(get_ayah_detail(selected_item.number, &mut list_ayah));
-                        }
+                        handle_event_enter(&rt, &mut input, &mut list_state, &mut list_surah, &mut list_ayah);
                     }
                     KeyCode::Esc => break Ok(()),
                     _ => {
@@ -146,7 +135,7 @@ fn render(
 
     render_title(frame, title_area);
     render_input_search(frame, search_area, input);
-    render_content(frame, surah_area, list_state, list_surah, input, list_ayah);
+    render_content(frame, list_state, list_surah, input, list_ayah);
 }
 
 pub fn render_title(frame: &mut Frame, area: Rect) {
@@ -169,7 +158,6 @@ pub fn render_input_search(frame: &mut Frame, area: Rect, input: &mut Input) {
 
 pub fn render_content(
     frame: &mut Frame,
-    area: Rect,
     list_state: &mut ListState,
     list_surah: &mut Vec<SurahDetail>,
     input: &mut Input,
@@ -197,7 +185,7 @@ pub fn render_surah(
     let items_filtered: Vec<String> = list_surah
         .iter()
         .filter(|x| x.english_name.to_lowercase().contains(&input_lowercase))
-        .map(|s| s.english_name.clone())
+        .map(|s| format!("{}. {}", s.number, s.english_name))
         .collect();
 
     let list = List::new(items_filtered)
@@ -214,7 +202,11 @@ pub fn render_ayah(
     list_state: &mut ListState,
     list_ayah: &mut Vec<AyahsList>,
 ) {
-    let list_ayah_string: Vec<String> = list_ayah.iter().map(|s| s.text.clone()).collect();
+    let list_ayah_string: Vec<String> = list_ayah
+    .iter()
+    .enumerate()
+    .map(|(i, s)| format!("{}. {}", i+1, s.text.clone()))
+    .collect();
     let list = List::new(list_ayah_string)
         .style(Color::LightYellow)
         .highlight_style(Modifier::REVERSED)
@@ -259,6 +251,17 @@ pub async fn get_ayah_detail(surah_id: i32, list: &mut Vec<AyahsList>) {
     }
 }
 
-pub async fn handle_event_enter(surah_number: i32, list_ayah: &mut Vec<AyahsList>) {
-    get_ayah_detail(surah_number, list_ayah).await;
+pub fn handle_event_enter(rt:&Runtime, input: &Input,list_state: & ListState, list_surah: &Vec<SurahDetail>, list_ayah: &mut Vec<AyahsList>) {
+    let input_lowercase = input.value().to_lowercase().to_string();
+    let items_filtered: Vec<&SurahDetail> = list_surah
+        .iter()
+        .filter(|x| x.english_name.to_lowercase().contains(&input_lowercase))
+        .map(|s| s)
+        .collect();
+
+    let selected_item = list_state.selected().and_then(|i| items_filtered.get(i));
+
+    if let Some(selected_item) = selected_item {
+        rt.block_on(get_ayah_detail(selected_item.number,list_ayah));
+    }
 }
