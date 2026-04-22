@@ -1,0 +1,29 @@
+[package]
+name = "youtube-terminal"
+version = "0.1.0"
+description = "An example generated using the hello-world template"
+authors = ["Hamam <hamam.nasrodin@maybank.com>"]
+license = "MIT"
+edition = "2024"
+
+[dependencies]
+color-eyre = "0.6.3"
+directories = "6.0.0"
+futures = "0.3.31"
+human-panic = "2.0.2"
+itertools = "0.14.0"
+libc = "0.2.171"
+log = "0.4.27"
+ratatui = "0.30.0"
+crossterm = "0.29.0"
+tui-input = "0.15.1"
+reqwest = { version = "0.13", features = ["json"] }
+tokio = { version = "1.44.1", features = ["full"] }
+serde = { version = "1.0", features = ["derive"] }
+
+# Read the optimization guideline for more details: https://ratatui.rs/recipes/apps/release-your-app/#optimizations
+[profile.release]
+codegen-units = 1
+lto = true
+opt-level = "s"
+strip = true
