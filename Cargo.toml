@@ -1,5 +1,5 @@
 [package]
-name = "youtube-terminal"
+name = "alquran-tui"
 version = "0.1.0"
 description = "An example generated using the hello-world template"
 authors = ["Hamam <hamam.nasrodin@maybank.com>"]

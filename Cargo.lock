@@ -33,6 +33,25 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "683d7910e743518b0e34f1186f92494becacb047c7b6bf616c96772180fef923"
 
 [[package]]
+name = "alquran-tui"
+version = "0.1.0"
+dependencies = [
+ "color-eyre",
+ "crossterm",
+ "directories",
+ "futures",
+ "human-panic",
+ "itertools",
+ "libc",
+ "log",
+ "ratatui",
+ "reqwest",
+ "serde",
+ "tokio",
+ "tui-input",
+]
+
+[[package]]
 name = "anstream"
 version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3624,25 +3643,6 @@ dependencies = [
  "quote",
  "syn 2.0.117",
  "synstructure",
-]
-
-[[package]]
-name = "youtube-terminal"
-version = "0.1.0"
-dependencies = [
- "color-eyre",
- "crossterm",
- "directories",
- "futures",
- "human-panic",
- "itertools",
- "libc",
- "log",
- "ratatui",
- "reqwest",
- "serde",
- "tokio",
- "tui-input",
 ]
 
 [[package]]

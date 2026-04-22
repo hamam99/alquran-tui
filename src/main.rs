@@ -246,7 +246,6 @@ pub async fn get_ayah_detail(surah_id: i32, list: &mut Vec<AyahsList>) {
     match reqwest::get(url).await {
         Ok(resp) => match resp.json::<AyahResponse>().await {
             Ok(data) => {
-                eprintln!("ayah: {}", data.code.to_string());
                 list.clear();
                 list.extend(data.data.ayahs);
             }
