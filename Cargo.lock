@@ -37,6 +37,7 @@ name = "alquran-tui"
 version = "0.1.0"
 dependencies = [
  "ar-reshaper",
+ "arabic_text_utils",
  "color-eyre",
  "crossterm",
  "directories",
@@ -114,6 +115,12 @@ name = "ar-reshaper"
 version = "1.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "08dae85b57b725df143d5a2eb92c032dd032f062a636826fda1e1a4b21c40c03"
+
+[[package]]
+name = "arabic_text_utils"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "70284e53fdc80dc711b15a549b948f8c082a4957544172aaa495d217e4076a1f"
 
 [[package]]
 name = "atomic"
