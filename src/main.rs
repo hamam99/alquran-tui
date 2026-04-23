@@ -240,7 +240,7 @@ pub fn render_ayah(
     let list_ayah_string: Vec<String> = list_ayah
         .iter()
         .enumerate()
-        .map(|(i, s)| format!("{}  {}", rtl_visual(&s.text), i + 1))
+        .map(|(i, s)| format!("{}",rtl_visual(&s.text)))
         .collect();
     let list = List::new(list_ayah_string)
         .block(Block::bordered().title("Ayah"))
