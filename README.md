@@ -13,6 +13,7 @@ Terminal UI (TUI) app for browsing Al-Qur’an surahs and viewing ayahs, built w
 - [Installation](#installation)
 - [Usage](#usage)
   - [Keybindings](#keybindings)
+- [Screenshot](#screenshot)
 - [API](#api)
 - [Development](#development)
   - [Project Structure](#project-structure)
@@ -58,6 +59,10 @@ cargo run
 - Right: Focus Ayah list
 - Enter: When Surah list is focused, fetch and display ayahs for the selected surah
 - Esc: Quit
+
+## Screenshot
+
+![alquran-tui screenshot](images/Screenshot%202026-04-23%20at%2011.45.41%E2%80%AFAM.png)
 
 ## API
 
