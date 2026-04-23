@@ -62,7 +62,7 @@ cargo run
 
 ## Screenshot
 
-![alquran-tui screenshot](images/Screenshot%202026-04-23%20at%2011.45.41%E2%80%AFAM.png)
+![alquran-tui screenshot](images/image.png)
 
 ## API
 
