@@ -105,6 +105,7 @@ fn main() -> color_eyre::Result<()> {
                     &mut input,
                     &mut list_surah,
                     &mut list_ayah,
+                    &focus_mode,
                 )
             })?;
             if let Some(key) = event::read()?.as_key_press_event() {
@@ -144,14 +145,13 @@ fn main() -> color_eyre::Result<()> {
                         FocusMode::AYAH => {}
                     },
                     KeyCode::Esc => break Ok(()),
-                    _ => {
-                        match focus_mode {
-                            FocusMode::SURAH => {
-                                input.handle_event(&Event::Key(key));
-                            }
-                            FocusMode::AYAH => {}
+                    _ => match focus_mode {
+                        FocusMode::SURAH => {
+                            input.handle_event(&Event::Key(key));
+                            list_state_ayah.select_first();
                         }
-                    }
+                        FocusMode::AYAH => {}
+                    },
                 }
             }
         }
@@ -166,6 +166,7 @@ fn render(
     input: &mut Input,
     list_surah: &mut Vec<SurahDetail>,
     list_ayah: &mut Vec<AyahsList>,
+    focus_mode: &FocusMode,
 ) {
     let constraints = [
         Constraint::Length(1),
@@ -185,6 +186,7 @@ fn render(
         list_surah,
         input,
         list_ayah,
+        focus_mode,
     );
 }
 
@@ -214,14 +216,30 @@ pub fn render_content(
     list_surah: &mut Vec<SurahDetail>,
     input: &mut Input,
     list_ayah: &mut Vec<AyahsList>,
+    focus_mode: &FocusMode,
 ) {
     let layout = Layout::default()
         .direction(Direction::Horizontal)
         .constraints(vec![Constraint::Fill(1), Constraint::Fill(3)]);
     let [surah_area, ayah_area] = area.layout(&layout);
 
-    render_surah(frame, surah_area, list_state_surah, list_surah, input);
-    render_ayah(frame, ayah_area, list_state_ayah, list_ayah);
+    let is_focus_surah = matches!(focus_mode, FocusMode::SURAH);
+
+    render_surah(
+        frame,
+        surah_area,
+        list_state_surah,
+        list_surah,
+        input,
+        is_focus_surah,
+    );
+    render_ayah(
+        frame,
+        ayah_area,
+        list_state_ayah,
+        list_ayah,
+        !is_focus_surah,
+    );
 }
 
 pub fn render_surah(
@@ -230,6 +248,7 @@ pub fn render_surah(
     list_state: &mut ListState,
     list_surah: &mut Vec<SurahDetail>,
     input: &mut Input,
+    is_focus: bool,
 ) {
     let input_lowercase = input.value().to_lowercase().to_string();
     let items_filtered: Vec<String> = list_surah
@@ -240,7 +259,11 @@ pub fn render_surah(
 
     let list = List::new(items_filtered)
         .block(Block::bordered().title("Surah"))
-        .style(Color::White)
+        .style(if is_focus {
+            Color::Yellow
+        } else {
+            Color::White
+        })
         .highlight_style(Modifier::REVERSED)
         .highlight_symbol("> ");
 
@@ -252,6 +275,7 @@ pub fn render_ayah(
     area: Rect,
     list_state: &mut ListState,
     list_ayah: &mut Vec<AyahsList>,
+    isOnFocus: bool,
 ) {
     let list_ayah_string: Vec<String> = list_ayah
         .iter()
@@ -260,7 +284,11 @@ pub fn render_ayah(
         .collect();
     let list = List::new(list_ayah_string)
         .block(Block::bordered().title("Ayah"))
-        .style(Color::LightYellow)
+        .style(if isOnFocus {
+            Color::Yellow
+        } else {
+            Color::White
+        })
         .highlight_style(Modifier::REVERSED)
         .highlight_symbol("> ");
 
