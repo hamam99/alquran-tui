@@ -14,67 +14,27 @@
 //! [widget examples]: https://github.com/ratatui/ratatui/blob/main/ratatui-widgets/examples
 //! [examples readme]: https://github.com/ratatui/ratatui/blob/main/examples/README.md
 
+mod surah;
+use crate::surah::SurahDetail;
+mod ayah;
+use crate::ayah::AyahsList;
+
+mod get_surah;
+use crate::get_surah::get_surah;
+mod get_ayah;
+use crate::get_ayah::get_ayah_detail;
+
+use ar_reshaper::ArabicReshaper;
 use crossterm::event::{self, Event, KeyCode};
 use ratatui::Frame;
 use ratatui::layout::{Constraint, Direction, Layout, Rect};
 use ratatui::style::{Color, Modifier, Style, Stylize};
 use ratatui::text::{Line, Span};
 use ratatui::widgets::{Block, List, ListState, Paragraph};
-use serde::Deserialize;
 use tokio::runtime::Runtime;
 use tui_input::Input;
 use tui_input::backend::crossterm::EventHandler;
-
-#[derive(Debug, Deserialize)]
-pub struct SurahResponse {
-    pub code: i32,
-    pub status: String,
-    pub data: Vec<SurahDetail>,
-}
-
-#[derive(Debug, Deserialize, Default)]
-#[serde(rename_all = "camelCase")]
-pub struct SurahDetail {
-    pub number: i32,
-    pub name: String,
-    pub english_name: String,
-    pub english_name_translation: String,
-    pub number_of_ayahs: i32,
-    pub revelation_type: String,
-}
-
-#[derive(Debug, Deserialize)]
-pub struct AyahResponse {
-    pub code: i32,
-    pub status: String,
-    pub data: AyahDetail,
-}
-
-#[derive(Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct AyahDetail {
-    pub number: i32,
-    pub name: String,
-    pub english_name: String,
-    pub english_name_translation: String,
-    pub number_of_ayahs: i32,
-    pub revelation_type: String,
-    pub ayahs: Vec<AyahsList>,
-}
-
-#[derive(Debug, Deserialize, Default)]
-#[serde(rename_all = "camelCase")]
-pub struct AyahsList {
-    pub number: i32,
-    pub text: String,
-    pub number_in_surah: i32,
-    pub juz: i32,
-    pub manzil: i32,
-    pub page: i32,
-    pub ruku: i32,
-    pub hizb_quarter: i32,
-    pub sajda: bool,
-}
+use unicode_bidi::BidiInfo;
 
 enum FocusMode {
     SURAH,
@@ -93,7 +53,7 @@ fn main() -> color_eyre::Result<()> {
     let mut list_ayah: Vec<AyahsList> = Vec::new();
     let mut focus_mode: FocusMode = FocusMode::SURAH;
 
-    rt.block_on(get_ayah(&mut list_surah));
+    rt.block_on(get_surah(&mut list_surah));
 
     ratatui::run(|terminal| {
         loop {
@@ -136,9 +96,9 @@ fn main() -> color_eyre::Result<()> {
                         FocusMode::SURAH => {
                             handle_event_enter(
                                 &rt,
-                                &mut input,
-                                &mut list_state_surah,
-                                &mut list_surah,
+                                &input,
+                                &list_state_surah,
+                                &list_surah,
                                 &mut list_ayah,
                             );
                         }
@@ -208,7 +168,7 @@ pub fn render_input_search(frame: &mut Frame, area: Rect, input: &mut Input) {
     frame.render_widget(input_block, area);
 }
 
-pub fn render_content(
+pub(crate) fn render_content(
     frame: &mut Frame,
     area: Rect,
     list_state_surah: &mut ListState,
@@ -275,16 +235,16 @@ pub fn render_ayah(
     area: Rect,
     list_state: &mut ListState,
     list_ayah: &mut Vec<AyahsList>,
-    isOnFocus: bool,
+    is_focus: bool,
 ) {
     let list_ayah_string: Vec<String> = list_ayah
         .iter()
         .enumerate()
-        .map(|(i, s)| format!("{}. {}", i + 1, s.text.clone()))
+        .map(|(i, s)| format!("{}  {}", rtl_visual(&s.text), i + 1))
         .collect();
     let list = List::new(list_ayah_string)
         .block(Block::bordered().title("Ayah"))
-        .style(if isOnFocus {
+        .style(if is_focus {
             Color::Yellow
         } else {
             Color::White
@@ -295,39 +255,14 @@ pub fn render_ayah(
     frame.render_stateful_widget(list, area, list_state);
 }
 
-pub async fn get_ayah(list: &mut Vec<SurahDetail>) {
-    match reqwest::get("http://api.alquran.cloud/v1/surah").await {
-        Ok(resp) => match resp.json::<SurahResponse>().await {
-            Ok(data) => {
-                list.clear();
-                list.extend(data.data);
-            }
-            Err(e) => {
-                // eprintln!("JSON error: {}", e);
-            }
-        },
-        Err(e) => {
-            // eprintln!("Request error: {}", e);
-        }
-    }
-}
-
-pub async fn get_ayah_detail(surah_id: i32, list: &mut Vec<AyahsList>) {
-    let url = format!("http://api.alquran.cloud/v1/surah/{}", surah_id);
-    match reqwest::get(url).await {
-        Ok(resp) => match resp.json::<AyahResponse>().await {
-            Ok(data) => {
-                list.clear();
-                list.extend(data.data.ayahs);
-            }
-            Err(e) => {
-                // eprintln!("JSON error: {}", e);
-            }
-        },
-        Err(e) => {
-            // eprintln!("Request error: {}", e);
-        }
-    }
+fn rtl_visual(text: &str) -> String {
+    let reshaper = ArabicReshaper::default();
+    let reshaped = reshaper.reshape(text);
+    let bidi = BidiInfo::new(&reshaped, None);
+    let Some(para) = bidi.paragraphs.first() else {
+        return reshaped;
+    };
+    bidi.reorder_line(para, para.range.clone()).into_owned()
 }
 
 pub fn handle_event_enter(
