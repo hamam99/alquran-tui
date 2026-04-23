@@ -25,6 +25,7 @@ mod get_ayah;
 use crate::get_ayah::get_ayah_detail;
 
 use ar_reshaper::ArabicReshaper;
+use arabic_text_utils::convert_numbers_to_arabic;
 use crossterm::event::{self, Event, KeyCode};
 use ratatui::Frame;
 use ratatui::layout::{Constraint, Direction, Layout, Rect};
@@ -240,7 +241,7 @@ pub fn render_ayah(
     let list_ayah_string: Vec<String> = list_ayah
         .iter()
         .enumerate()
-        .map(|(i, s)| format!("{} .{}", rtl_visual(&s.text), i + 1))
+        .map(|(i, s)| format!("{} .{}", rtl_visual(&s.text), convert_numbers_to_arabic((i+1).to_string().as_str())))
         .collect();
     let list = List::new(list_ayah_string)
         .block(Block::bordered().title("Ayah"))
