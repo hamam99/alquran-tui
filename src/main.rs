@@ -76,16 +76,22 @@ pub struct AyahsList {
     pub sajda: bool,
 }
 
+enum FocusMode {
+    SURAH,
+    AYAH,
+}
+
 fn main() -> color_eyre::Result<()> {
     color_eyre::install()?;
 
     let rt: Runtime = tokio::runtime::Runtime::new()?;
 
-    let mut list_state = ListState::default().with_selected(Some(0));
+    let mut list_state_surah = ListState::default().with_selected(Some(0));
+    let mut list_state_ayah = ListState::default().with_selected(Some(0));
     let mut input: Input = Input::new("".to_string());
     let mut list_surah: Vec<SurahDetail> = Vec::new();
-    // let mut selected_surah_id : i32 =  1;
     let mut list_ayah: Vec<AyahsList> = Vec::new();
+    let mut focus_mode: FocusMode = FocusMode::SURAH;
 
     rt.block_on(get_ayah(&mut list_surah));
 
@@ -94,7 +100,8 @@ fn main() -> color_eyre::Result<()> {
             terminal.draw(|frame| {
                 render(
                     frame,
-                    &mut list_state,
+                    &mut list_state_surah,
+                    &mut list_state_ayah,
                     &mut input,
                     &mut list_surah,
                     &mut list_ayah,
@@ -102,20 +109,48 @@ fn main() -> color_eyre::Result<()> {
             })?;
             if let Some(key) = event::read()?.as_key_press_event() {
                 match key.code {
-                    KeyCode::Down => list_state.select_next(),
-                    KeyCode::Up => list_state.select_previous(),
-                    KeyCode::Enter => {
-                        handle_event_enter(
-                            &rt,
-                            &mut input,
-                            &mut list_state,
-                            &mut list_surah,
-                            &mut list_ayah,
-                        );
+                    KeyCode::Left => {
+                        focus_mode = FocusMode::SURAH;
                     }
+                    KeyCode::Right => {
+                        focus_mode = FocusMode::AYAH;
+                    }
+                    KeyCode::Down => match focus_mode {
+                        FocusMode::SURAH => {
+                            list_state_surah.select_next();
+                        }
+                        FocusMode::AYAH => {
+                            list_state_ayah.select_next();
+                        }
+                    },
+                    KeyCode::Up => match focus_mode {
+                        FocusMode::SURAH => {
+                            list_state_surah.select_previous();
+                        }
+                        FocusMode::AYAH => {
+                            list_state_ayah.select_previous();
+                        }
+                    },
+                    KeyCode::Enter => match focus_mode {
+                        FocusMode::SURAH => {
+                            handle_event_enter(
+                                &rt,
+                                &mut input,
+                                &mut list_state_surah,
+                                &mut list_surah,
+                                &mut list_ayah,
+                            );
+                        }
+                        FocusMode::AYAH => {}
+                    },
                     KeyCode::Esc => break Ok(()),
                     _ => {
-                        input.handle_event(&Event::Key(key));
+                        match focus_mode {
+                            FocusMode::SURAH => {
+                                input.handle_event(&Event::Key(key));
+                            }
+                            FocusMode::AYAH => {}
+                        }
                     }
                 }
             }
@@ -126,7 +161,8 @@ fn main() -> color_eyre::Result<()> {
 /// Render the UI with various lists.
 fn render(
     frame: &mut Frame,
-    list_state: &mut ListState,
+    list_state_surah: &mut ListState,
+    list_state_ayah: &mut ListState,
     input: &mut Input,
     list_surah: &mut Vec<SurahDetail>,
     list_ayah: &mut Vec<AyahsList>,
@@ -144,7 +180,8 @@ fn render(
     render_content(
         frame,
         content_area,
-        list_state,
+        list_state_surah,
+        list_state_ayah,
         list_surah,
         input,
         list_ayah,
@@ -172,7 +209,8 @@ pub fn render_input_search(frame: &mut Frame, area: Rect, input: &mut Input) {
 pub fn render_content(
     frame: &mut Frame,
     area: Rect,
-    list_state: &mut ListState,
+    list_state_surah: &mut ListState,
+    list_state_ayah: &mut ListState,
     list_surah: &mut Vec<SurahDetail>,
     input: &mut Input,
     list_ayah: &mut Vec<AyahsList>,
@@ -182,8 +220,8 @@ pub fn render_content(
         .constraints(vec![Constraint::Fill(1), Constraint::Fill(3)]);
     let [surah_area, ayah_area] = area.layout(&layout);
 
-    render_surah(frame, surah_area, list_state, list_surah, input);
-    render_ayah(frame, ayah_area, list_state, list_ayah);
+    render_surah(frame, surah_area, list_state_surah, list_surah, input);
+    render_ayah(frame, ayah_area, list_state_ayah, list_ayah);
 }
 
 pub fn render_surah(
@@ -226,8 +264,7 @@ pub fn render_ayah(
         .highlight_style(Modifier::REVERSED)
         .highlight_symbol("> ");
 
-    // frame.render_stateful_widget(list, area, list_state);
-    frame.render_widget(list, area);
+    frame.render_stateful_widget(list, area, list_state);
 }
 
 pub async fn get_ayah(list: &mut Vec<SurahDetail>) {
